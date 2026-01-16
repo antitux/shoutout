@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shoutout
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shoutout
+  namespace: shoutout
+  labels:
+    app: shoutout
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shoutout
+  template:
+    metadata:
+      labels:
+        app: shoutout
+    spec:
+      imagePullSecrets:
+      - name: dockerhub
+      containers:
+      - name: shoutout
+        image: antitux/shoutout:latest
+        ports:
+        - containerPort: 80
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shoutout
+  namespace: shoutout
+  labels:
+    service: shoutout
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+  selector:
+    app: shoutout
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shoutout-ingress
+  namespace: shoutout
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  rules:
+  - host: shoutout.antx.dev
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: shoutout
+              port:
+                number: 80
+  tls:
+  - hosts:
+    - 'shoutout.antx.dev'
+    secretName: shoutout-cert
